@@ -2,18 +2,13 @@
 #include "view.h"
 #include "networking.h"
 #include "sideled.h"
+#include "config.h"
 
 
-void event_handler_checkbox(struct _lv_obj_t * obj, lv_event_t event);
-void event_handler_button(struct _lv_obj_t * obj, lv_event_t event);
-void init_image_roller();
+
 void mqtt_callback(char* topic, byte* payload, unsigned int length);
 
 unsigned long next_lv_task = 0;
-
-void event_handler_button(struct _lv_obj_t * obj, lv_event_t event) {
-  
-}
 
 lv_obj_t * label_x;
 lv_obj_t * label_y;
@@ -82,9 +77,9 @@ void updateGui() {
 
 void loop_accel() {
   M5.IMU.getAccelData(&acc_raw_x, &acc_raw_y, &acc_raw_z);
-  acc_buf_x = (acc_buf_x * 4 + acc_raw_x) / 5;
-  acc_buf_y = (acc_buf_y * 4 + acc_raw_y) / 5;
-  acc_buf_z = (acc_buf_z * 4 + acc_raw_z) / 5;
+  acc_buf_x = (acc_buf_x * SENSOR_SMOOTHING_FACTOR + acc_raw_x) / (SENSOR_SMOOTHING_FACTOR+1);
+  acc_buf_y = (acc_buf_y * SENSOR_SMOOTHING_FACTOR + acc_raw_y) / (SENSOR_SMOOTHING_FACTOR+1);
+  acc_buf_z = (acc_buf_z * SENSOR_SMOOTHING_FACTOR + acc_raw_z) / (SENSOR_SMOOTHING_FACTOR+1);
 
   if(acc_buf_y > 0.8) isOpenGarageDoor = false;
   else if(acc_buf_z < -0.8) isOpenGarageDoor = true;
@@ -95,7 +90,7 @@ void loop_accel() {
 void loop_publish_data() {
   char buf[30];
   snprintf (buf, 32, "%.2f,%.2f,%.2f", acc_buf_x,acc_buf_y,acc_buf_z);
-  mqtt_publish("m5core2/accel", buf);
+  mqtt_publish(MQTT_TOPIC_ACCEL, buf);
 }
 
 void loop() {
@@ -138,9 +133,8 @@ void setup() {
   init_display();
   Serial.begin(115200);
   
-  // Uncomment the following lines to enable MQTT
+  // Connect to WiFi and MQTT
   init_networking();
-
 
   init_gui();
   init_sideled();

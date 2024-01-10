@@ -17,4 +17,6 @@ void mqtt_publish(const char* topic, const char* payload);
 
 void mqtt_re_connect();
 
+void mqtt_subscribe(const char *topic);
+
 #endif // NETWORKING_H_
